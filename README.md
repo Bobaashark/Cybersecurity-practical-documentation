@@ -2,19 +2,19 @@
 
 > Hands-on documentation of my path through both **offensive (red team)** and **defensive (blue team)** security.
 
-Hi, I'm **<Your Name>**. I'm building practical skills by attacking and defending my own lab environments, then documenting what I learn. The mix matters: understanding how attacks work makes me better at detecting them, and understanding detection makes me a smarter tester.
+Hi, I'm Nagarur Pavani. I'm building practical skills by attacking and defending my own lab environments, then documenting what I learn. The mix matters: understanding how attacks work makes me better at detecting them, and understanding detection makes me a smarter tester.
 
-📫 [LinkedIn](https://linkedin.com/in/<your-handle>) · 🌐 [Portfolio/Blog](#) · ✉️ <your-email>
+📫 [LinkedIn] https://www.linkedin.com/in/pavani-nagarur-b36314315/· · ✉️ pavaniganga103@gmail.com
 
 ## 🎯 Goals
 - Build and maintain a home lab with attacker, victim, and monitoring systems
-- Work through Security+ / eJPT / BTL1 (edit to match yours)
+- Work through Security+ 
 - Practice the full loop: **attack → detect → respond → document**
 
 ## 🧰 Tools & Technologies
 | Red Team | Blue Team | General |
 |---|---|---|
-| Nmap, Burp Suite, Metasploit, Hydra, Gobuster | Wazuh, Splunk, Suricata, Wireshark, Sysmon | Kali, Ubuntu, Windows, VirtualBox/VMware, Git |
+| Nmap, Burp Suite, Metasploit, Hydra, Gobuster |  Wireshark, Sysmon, Wazuh, Splunk, Suricata| Kali, Ubuntu, Windows, VirtualBox/VMware, Git |
 
 ## 📚 Lab Index
 | # | Lab | Track | Tools | Difficulty | Date |
@@ -28,8 +28,6 @@ Legend: 🔴 Red team · 🔵 Blue team · 🟣 Purple (attack + detect)
 
 ## 📂 Repo Structure
 - `labs/` – one folder per lab with a writeup and screenshots
-- `cheatsheets/` – quick-reference notes
-- `scripts/` – my own tools and automation
 - `certifications/` – study notes
 - `templates/` – lab writeup template
 - `linkedin/` – post drafts
