@@ -19,10 +19,8 @@ Hi, I'm Nagarur Pavani. I'm building practical skills by attacking and defending
 ## 📚 Lab Index
 | # | Lab | Track | Tools | Difficulty | Date |
 |---|-----|-------|-------|-----------|------|
-| 01 | [Home Lab Setup](labs/01-home-lab-setup/) | Foundation | VirtualBox, Kali, pfSense | Easy | YYYY-MM-DD |
-| 02 | Nmap Enumeration | 🔴 Red | Nmap | Easy | |
-| 03 | Wazuh SIEM Deployment | 🔵 Blue | Wazuh, Sysmon | Medium | |
-| 04 | Detecting My Own Attack | 🟣 Purple | Kali, Wazuh | Medium | |
+| 01 | Over The Wire [Bandit] | Foundation | Linux commands| Easy | 2026-11-15|
+
 
 Legend: 🔴 Red team · 🔵 Blue team · 🟣 Purple (attack + detect)
 
