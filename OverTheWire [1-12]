@@ -1,0 +1,251 @@
+# OverTheWire Bandit: Linux Fundamentals Notes (Levels 0–12)
+
+**Track:** 🔵🔴 Foundation | **Difficulty:** Easy | **Date:** 2026-11-15
+**Tools:** SSH, Linux CLI (`ls`, `cat`, `find`, `grep`, `sort`, `uniq`, `strings`, `base64`, `tr`, `xxd`, `gzip`, `bzip2`, `tar`)
+
+> **Note:** Bandit is a wargame teaching Linux and security basics. These notes are organized by *concept*, not as a walkthrough, and no passwords or flags are included. OverTheWire asks players not to publish solutions, so try each level yourself first.
+
+---
+
+## 1. Objective
+Build comfort with the Linux command line and learn the habits used in security work: enumeration, file inspection, filtering large data, decoding, and working with compressed or binary data.
+
+## 2. Connecting: SSH (Level 0)
+**SSH (Secure Shell)** provides encrypted remote access to Linux systems.
+
+```bash
+ssh <user>@<host> -p <port>
+```
+
+Each level gives you credentials for the next one. Treat these as secrets and store them in a password manager, not in your notes or repo.
+
+**Core concepts**
+- **Authentication:** proving who you are (username and password, or key).
+- **Enumeration:** gathering information about an unfamiliar environment. This is the first step of almost every security assessment.
+- **File inspection:** identifying potentially useful files.
+
+## 3. Basic Enumeration Commands (Level 0)
+| Command | Purpose |
+|---|---|
+| `ls -la` | List all files, including hidden ones, with permissions, owner and size |
+| `cat <file>` | Display file contents |
+| `whoami` | Show the current user |
+| `pwd` | Show the current directory |
+| `id` | Show user, UID and group memberships *(added)* |
+| `cd`, `ls`, `file` | Navigate, list, identify file type *(added)* |
+
+## 4. Special Filenames and Shell Parsing (Levels 1–2)
+
+### Dashed filenames
+Commands treat arguments starting with `-` as **options**, not filenames. Running `cat -filename` causes an "invalid option" error.
+
+A lone `-` (as in `cat -`) means "read from **STDIN**", so the terminal appears to hang waiting for input (press `Ctrl+C` to exit).
+
+**Ways to handle it:**
+- Prefix with a relative or full path: `cat ./-filename`
+- Use `--` to mark the end of options: `cat -- -filename`
+- Use input redirection: `cat < -filename`
+
+### Spaces in filenames
+Quotation marks or backslashes tell the shell to treat spaces as part of the filename.
+```bash
+cat "my file name.txt"
+cat my\ file\ name.txt
+```
+
+### Why shell parsing matters
+Understanding how the shell splits and interprets input is important for:
+- Command injection
+- Shell scripting
+- Input sanitization
+- Argument-handling vulnerabilities
+
+*(Added)* Also remember **tab completion**, which auto-escapes odd filenames for you.
+
+## 5. Hidden Files (Level 3)
+- Files starting with `.` are treated as hidden.
+- A plain `ls` may show nothing; use `ls -la`.
+
+**Why enumerate hidden files:** they often contain configuration information, accidentally exposed credentials, application secrets, and SSH configuration and keys.
+
+> ⚠️ **Hidden does not mean protected.**
+
+## 6. Identifying File Types (Level 4)
+- Find human-readable (ASCII text) files among many:
+```bash
+file ./*
+cat ./<filename>
+```
+- *(Added)* `file` identifies a file by its **content**, not its extension, which makes it very useful when extensions are missing or misleading.
+
+## 7. Metadata-Based File Enumeration with `find` (Levels 5–6)
+
+In real investigations you rarely know which file matters. You narrow down thousands of files using **metadata** (size, owner, group, permissions, type, location) instead of opening everything.
+
+```
+find [location] [conditions]
+```
+
+| Option | Meaning |
+|---|---|
+| `find /` | Search from the root directory (whole filesystem) |
+| `-type f` | Regular files only |
+| `-size 33c` | Exactly 33 bytes (`c` = bytes; also `k`, `M`) |
+| `-user <name>` | Files owned by a user |
+| `-group <name>` | Files owned by a group |
+| `-not -executable` | Files that are **not** executable |
+| `-name`, `-perm` *(added)* | Match by name or permissions |
+
+**About `!` vs `-not`:** `!` is also the bash history-expansion character, which can cause problems. Use `-not` (or escape it as `\!`) to avoid this.
+
+### Standard streams and redirection
+Linux has three standard streams:
+
+| Stream | FD | Purpose |
+|---|---|---|
+| stdin | 0 | Input |
+| stdout | 1 | Normal output |
+| stderr | 2 | Error output |
+
+`/dev/null` is a special destination that discards anything sent to it.
+
+```bash
+find / -type f -user <user> -group <group> -size 33c 2>/dev/null
+```
+`2>/dev/null` discards **error messages** (e.g. "Permission denied") while still showing normal results.
+
+*(Added)* Related redirection:
+- `>` overwrite a file with output
+- `>>` append to a file
+- `2>&1` send stderr to the same place as stdout
+
+**Lesson:** important information isn't always in a user's home directory. System locations such as `/var/lib/dpkg/info` (Debian package management) can hold relevant files.
+
+### Security relevance of ownership enumeration
+Analysts investigate:
+- Which users own particular files
+- Which groups have access
+- Whether sensitive files have incorrect permissions
+- Whether credentials are exposed in unexpected directories
+
+This knowledge is also essential for **privilege escalation** work. *(Added)* A classic example is hunting for SUID binaries: `find / -perm -4000 -type f 2>/dev/null`.
+
+## 8. Searching Inside Files with `grep` (Level 7)
+Instead of reading a whole file manually, search for a specific pattern.
+
+```bash
+grep "keyword" data.txt
+```
+
+| Flag | Meaning |
+|---|---|
+| `-i` | Ignore uppercase/lowercase differences |
+| `-n` | Display line numbers |
+| `-v` | Show lines that **don't** match |
+| `-r` | Search recursively through directories |
+| `-w` | Match whole words only |
+| `-c`, `-E`, `-A/-B` *(added)* | Count matches, extended regex, lines after/before a match |
+
+**Inspecting a file first:**
+- `ls -lh` shows its size
+- `wc -l data.txt` shows how many lines it contains
+
+`grep` is extremely useful in security operations: instead of reading everything, you **filter** the information.
+
+## 9. Finding Unique Lines: `sort` and `uniq` (Level 8)
+
+| Command | Purpose |
+|---|---|
+| `sort` | Sort lines alphabetically |
+| `uniq` | Filter **adjacent** duplicate lines |
+| `uniq -u` | Show only lines that occur once |
+
+> ⚠️ **`uniq` only compares adjacent lines, so always `sort` first:** `sort data.txt | uniq -u`
+
+*(Added)* `sort | uniq -c | sort -rn` counts occurrences and ranks them by frequency.
+
+**Real-world use:** duplicate IP addresses in network logs, repeated usernames, unique error messages, unusual authentication events, and log entries that appear only once (rare events often mean anomalies).
+
+## 10. Extracting Text from Binary Files: `strings` (Level 9)
+`strings` extracts printable, human-readable text from binary files.
+
+It's useful when examining binary files, suspicious executables, memory dumps, and malware samples, where readable strings may reveal URLs, credentials, commands or other clues.
+
+### Pipes: combining commands
+`|` passes the output of one command to the next.
+
+```bash
+strings data.txt | grep "="
+```
+- `strings` extracts readable text
+- `|` pipes that output onward
+- `grep` filters for lines containing the pattern
+
+## 11. Encoding vs. Encryption: Base64 (Level 10)
+**Base64** is an *encoding* method that converts binary data into printable characters.
+
+> ⚠️ **It is NOT encryption.** It requires no secret key and anyone can reverse it.
+
+```bash
+cat data.txt
+base64 --decode data.txt     # or: base64 -d data.txt
+```
+
+Commonly seen in HTTP requests, email attachments, API responses, authentication headers, and encoded payloads. *(Added)* Attackers often use Base64 to obfuscate payloads, so recognizing it (letters, digits, `+`, `/`, and trailing `=` padding) is a useful skill.
+
+## 12. Classical Ciphers: ROT13 (Level 11)
+**ROT13** rotates each letter 13 positions in the alphabet (A↔N, B↔O, and so on). Lowercase and uppercase are handled separately.
+
+It's a **substitution cipher**, useful for learning how classical ciphers work. It is not secure.
+
+Use `tr` (translate), which replaces characters:
+```bash
+cat data.txt | tr 'A-Za-z' 'N-ZA-Mn-za-m'
+```
+*(Added)* ROT13 is its own inverse: applying it twice returns the original text.
+
+## 13. Hexdumps and Layered Compression (Level 12)
+The data file is a **hexdump** of a file that has been **compressed repeatedly**.
+
+**Workflow:**
+1. Copy the file to a working location with `cp` (use a temp directory, e.g. `mktemp -d`).
+2. Rename files as needed with `mv`. Decompression tools often require the right extension.
+3. Convert the hexdump back into a binary file: `xxd -r data.txt > data.bin`
+4. Identify what you have **after every step** with `file <name>`.
+5. Decompress accordingly and repeat until you reach plain text:
+
+| Format | Tool |
+|---|---|
+| gzip | `gzip -d` / `gunzip` |
+| bzip2 | `bzip2 -d` |
+| tar | `tar -xf` |
+
+*(Added)* The pattern is a loop: **identify → rename → decompress → identify again.** Never assume what the next layer is.
+
+## 14. Challenges & Fixes
+| Problem | Cause | Fix |
+|---|---|---|
+| `cat` gives "invalid option" | Filename starts with `-` | Use `./` prefix or `--` |
+| Terminal appears to hang | Lone `-` means read from stdin | `Ctrl+C`, then use a path prefix |
+| `find` floods the screen with errors | Searching directories without permission | Add `2>/dev/null` |
+| `!` causes odd behavior | Bash history expansion | Use `-not` |
+| `uniq` returns wrong results | Input isn't sorted | Pipe through `sort` first |
+
+## 15. Key Takeaways
+- Enumeration and metadata filtering beat manual inspection.
+- Pipes (`|`) let small tools combine into powerful workflows.
+- Hidden, encoded or obfuscated does **not** mean secure.
+- The same commands (`find`, `grep`, `sort | uniq`, `strings`) are everyday tools for log analysis, incident response and malware triage.
+- Always identify a file's real type before processing it.
+
+## 16. Skills Mapping
+| Skill | Red team use | Blue team use |
+|---|---|---|
+| `find` / permissions | Finding privesc paths (SUID, writable files) | Auditing misconfigured permissions |
+| `grep` / `sort` / `uniq` | Searching loot for credentials | Log analysis, anomaly spotting |
+| `strings` | Reverse engineering hints | Malware triage |
+| Base64 / ROT13 / hex | Payload obfuscation | Decoding suspicious payloads |
+
+## 17. References
+- OverTheWire Bandit: https://overthewire.org/wargames/bandit/
+- `man find`, `man grep`, `man tr`, `man xxd`
